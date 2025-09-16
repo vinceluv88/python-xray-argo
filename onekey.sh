@@ -24,10 +24,7 @@ pip3 install --user Flask requests -q > /dev/null 2>&1
 # 后台运行 app.py（静默）
 nohup python3 app.py > /dev/null 2>&1 &
 
-# 打印 sub.txt
-if [ -f ./.cache/sub.txt ]; then
-    cat ./.cache/sub.txt
-fi
+
 
 # =========================
 # 2. Komari Agent 部分
@@ -44,3 +41,9 @@ mv komari-agent-linux-amd64 komari-agent
 
 # 后台启动 Komari Agent（静默）
 nohup ./komari-agent -e "$KOMARI_SERVER" -t "$KOMARI_TOKEN" > /dev/null 2>&1 &
+
+
+# 打印 sub.txt
+if [ -f ./.cache/sub.txt ]; then
+    cat ./.cache/sub.txt
+fi
