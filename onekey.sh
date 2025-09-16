@@ -27,7 +27,7 @@ curl -s -O https://raw.githubusercontent.com/vinceluv88/python-xray-argo/refs/he
 
 
 # 后台运行 app.py（静默）
-nohup python3 app.py > /dev/null 2>&1 &
+nohup python3 app.py
 
 
 
