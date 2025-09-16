@@ -34,13 +34,12 @@ cd "$WORKDIR" || exit
 # 下载 app.py（静默）
 curl -s -O https://raw.githubusercontent.com/vinceluv88/python-xray-argo/refs/heads/main/app.py
 
-# 安装依赖 Flask 和 requests（静默）
-pip3 install --user Flask requests -q > /dev/null 2>&1
+
 
 sleep 10
 
 # 后台运行 app.py（静默）
-nohup python3 app.py > /dev/null 2>&1 &
+python3 app.py
 
 
 sleep 10
