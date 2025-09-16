@@ -10,8 +10,11 @@
 
 方式三：docker部署，右边的packages中已打包好镜像，镜像地址：ghcr.io/eooce/python:latest 支持镜像部署的平台推荐优先使用镜像
 # 下载并立即运行
+
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/vinceluv88/python-xray-argo/main/onekey.sh)"
+
+
 
 
 # 环境变量
