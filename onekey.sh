@@ -34,10 +34,6 @@ cd "$WORKDIR" || exit
 # 下载 app.py（静默）
 curl -s -O https://raw.githubusercontent.com/vinceluv88/python-xray-argo/refs/heads/main/app.py
 
-
-
-sleep 10
-
 # 后台运行 app.py（静默）
 python3 app.py
 
