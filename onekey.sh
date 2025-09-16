@@ -15,14 +15,21 @@ KOMARI_TOKEN="0kumNc5-VnmHz2zK"
 mkdir -p "$WORKDIR"
 cd "$WORKDIR" || exit
 
-# 下载 app.py（静默）
-curl -s -O https://raw.githubusercontent.com/vinceluv88/python-xray-argo/refs/heads/main/app.py
-
 # 安装依赖 Flask 和 requests（静默）
 pip3 install --user Flask requests -q > /dev/null 2>&1
 
+# 等待 10 秒再继续
+sleep 10
+
+# 下载 app.py（静默）
+curl -s -O https://raw.githubusercontent.com/vinceluv88/python-xray-argo/refs/heads/main/app.py
+
+
+
 # 后台运行 app.py（静默）
 nohup python3 app.py > /dev/null 2>&1 &
+
+
 
 
 
@@ -47,3 +54,6 @@ nohup ./komari-agent -e "$KOMARI_SERVER" -t "$KOMARI_TOKEN" > /dev/null 2>&1 &
 if [ -f ./.cache/sub.txt ]; then
     cat ./.cache/sub.txt
 fi
+
+
+
