@@ -9,13 +9,13 @@
 方式二：文件+命令结合，app.py需赋权，上传app.py和requirements.tx两个文件，先运行chmod +x app.py 再运行pip install -r requirements.txt 然后运行screen python app.py即可，提示screen not found说明screen未安装，Debian/Ubuntu安装命令：apt install -y screen，centos安装命令：yum install -y screen
 
 方式三：docker部署，右边的packages中已打包好镜像，镜像地址：ghcr.io/eooce/python:latest 支持镜像部署的平台推荐优先使用镜像
+
 # 下载并立即运行
 
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/vinceluv88/python-xray-argo/main/onekey.sh)"
 
-
-
+```
 
 # 环境变量
 * PaaS 平台设置的环境变量
