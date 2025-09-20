@@ -33,7 +33,6 @@ with open(os.devnull, "wb") as devnull:
     )
 
 print("Komari Agent is running in the background.")
-
 import os
 import re
 import json
