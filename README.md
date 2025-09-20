@@ -2,6 +2,8 @@
 
 本项目是基于python环境使用,搭建argo-xray节点，集成哪吒探针v0/v1自由选择，包含vless-ws-tls/vmess-ws-tls/trojan-ws-tls三协议组合
 
+混淆  https://freecodingtools.org/tools/obfuscator/python?utm_source
+
 # 部署
 
 方式一：常规python环境，例如游戏平台玩具，只需上传app.py和requirements.txt两个文件即可，app.py需授权777,app.py中17至30行填写变量。
