@@ -2,16 +2,23 @@ import os
 import requests
 import stat
 import subprocess
+import platform
 
 # 配置
 KOMARI_SERVER = "https://komari.vinceluv.nyc.mn"
-KOMARI_TOKEN = "46lCSjl3duGrJMsG"
-AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.0.72/komari-agent-linux-amd64"
+KOMARI_TOKEN = "yE_8SyAUR9qFoSEk"
 AGENT_PATH = "/home/container/komari-agent"
+
+# 根据架构选择下载链接
+arch = platform.machine().lower()
+if 'arm' in arch or 'aarch64' in arch:
+    AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.0.72/komari-agent-linux-arm64"
+else:
+    AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.0.72/komari-agent-linux-amd64"
 
 # 下载 Komari Agent
 if not os.path.exists(AGENT_PATH):
-    print("Downloading Komari Agent...")
+    print(f"Downloading Komari Agent for architecture {arch}...")
     r = requests.get(AGENT_URL, stream=True)
     with open(AGENT_PATH, "wb") as f:
         for chunk in r.iter_content(1024):
@@ -33,6 +40,7 @@ with open(os.devnull, "wb") as devnull:
     )
 
 print("Komari Agent is running in the background.")
+
 import os
 import re
 import json
