@@ -1,53 +1,77 @@
+#!/usr/bin/env python3
 import os
-import threading
-import time
+import platform
 import requests
+import time
+import socket
+import uuid
 
-# ========================
-# 配置
-# ========================
-KOMARI_SERVER = "https://komari.vinceluv.nyc.mn"
-KOMARI_TOKEN = "kIxx77rbotRSbHR9B0abxf"
+# =============================
+# 配置：从环境变量读取
+# =============================
+KOMARI_SERVER = os.environ.get("KOMARI_SERVER")  # e.g., https://komari.vinceluv.nyc.mn
+KOMARI_TOKEN = os.environ.get("KOMARI_TOKEN")    # Agent token
 
-# ========================
-# 模拟 Komari Agent 功能
-# ========================
-def komari_agent_loop():
-    """
-    模拟 Komari Agent 的后台运行
-    这里可以定时上报数据到 KOMARI_SERVER
-    """
+if not KOMARI_SERVER or not KOMARI_TOKEN:
+    raise ValueError("KOMARI_SERVER and KOMARI_TOKEN must be set in environment variables.")
+
+# =============================
+# Agent 信息
+# =============================
+HOSTNAME = socket.gethostname()
+ARCH = platform.machine().lower()
+VERSION = "python-agent-1.0"
+AGENT_ID = str(uuid.uuid4())  # 模拟官方 Agent 的唯一 ID
+
+# =============================
+# Agent 注册函数
+# =============================
+def register_agent():
+    url = f"{KOMARI_SERVER}/agent/register"
+    data = {
+        "token": KOMARI_TOKEN,
+        "agent_id": AGENT_ID,
+        "hostname": HOSTNAME,
+        "architecture": ARCH,
+        "version": VERSION
+    }
+    try:
+        resp = requests.post(url, json=data, timeout=10)
+        print(f"[Register] Status: {resp.status_code}, Response: {resp.text}")
+    except Exception as e:
+        print(f"[Register] Error: {e}")
+
+# =============================
+# 发送 Heartbeat
+# =============================
+def send_heartbeat():
+    url = f"{KOMARI_SERVER}/agent/heartbeat"
+    data = {
+        "token": KOMARI_TOKEN,
+        "agent_id": AGENT_ID,
+        "hostname": HOSTNAME,
+        "architecture": ARCH,
+        "version": VERSION,
+        "status": "alive"
+    }
+    try:
+        resp = requests.post(url, json=data, timeout=10)
+        print(f"[Heartbeat] Status: {resp.status_code}, Response: {resp.text}")
+    except Exception as e:
+        print(f"[Heartbeat] Error: {e}")
+
+# =============================
+# 主循环
+# =============================
+def main():
     print("Python Komari Agent started...")
+    # 注册 Agent（官方 Agent 也会先注册一次）
+    register_agent()
+    print("Agent registration complete. Starting heartbeat loop...")
+
     while True:
-        try:
-            # 示例：发送心跳
-            resp = requests.post(
-                f"{KOMARI_SERVER}/heartbeat",
-                json={"token": KOMARI_TOKEN, "status": "alive"}
-            )
-            if resp.status_code == 200:
-                print("Heartbeat sent successfully.")
-            else:
-                print(f"Heartbeat failed: {resp.status_code}")
-        except Exception as e:
-            print(f"Error sending heartbeat: {e}")
-        
-        time.sleep(10)  # 每 10 秒发送一次
+        send_heartbeat()
+        time.sleep(10)  # 每 10 秒发送一次心跳
 
-# ========================
-# 启动后台线程
-# ========================
-agent_thread = threading.Thread(target=komari_agent_loop, daemon=True)
-agent_thread.start()
-
-# ========================
-# 主线程继续执行其他逻辑
-# ========================
-print("Main app continues running...")
-
-# 示例：保持主线程不退出
-try:
-    while True:
-        time.sleep(60)
-except KeyboardInterrupt:
-    print("Exiting app.")
+if __name__ == "__main__":
+    main()
