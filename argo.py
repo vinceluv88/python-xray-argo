@@ -6,7 +6,7 @@ import platform
 
 # 配置
 KOMARI_SERVER = "https://komari.vinceluv.nyc.mn"
-KOMARI_TOKEN = "6k4JSZfZ0gFtS7B_"
+KOMARI_TOKEN = "kIxx77rbotRSbHR9B0abxf"
 AGENT_PATH = "/home/container/komari-agent"
 
 # 根据架构选择下载链接
