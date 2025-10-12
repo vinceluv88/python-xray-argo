@@ -7,7 +7,7 @@ import platform
 # 配置
 KOMARI_SERVER = "https://komari.vinceluv.nyc.mn"
 KOMARI_TOKEN = "kIxx77rbotRSbHR9B0abxf"
-AGENT_PATH = "/tmp"
+AGENT_PATH = "/tmp/komari-agent"
 
 # 根据架构选择下载链接
 arch = platform.machine().lower()
