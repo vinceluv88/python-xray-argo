@@ -1,80 +1,42 @@
-import subprocess
-import sys
-
-# ------------------------------
-# 安装依赖函数
-# ------------------------------
-def install(package):
-    try:
-        __import__(package)
-    except ImportError:
-        print(f"{package} not found, installing...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-
-# 安装 psutil 和 websockets
-install("psutil")
-install("websockets")
-
-# ------------------------------
-# 导入已安装依赖
-# ------------------------------
 import os
-import asyncio
-import json
+import requests
+import stat
+import subprocess
 import platform
-import psutil
-import websockets
 
-# ------------------------------
-# 配置环境变量
-# ------------------------------
-KOMARI_TOKEN = os.environ.get("KOMARI_TOKEN")
-KOMARI_SERVER = os.environ.get("KOMARI_SERVER")
+# 配置
+KOMARI_SERVER = "https://komari.vinceluv.nyc.mn"
+KOMARI_TOKEN = "kIxx77rbotRSbHR9B0abxf"
+AGENT_PATH = ""
 
-if not KOMARI_TOKEN or not KOMARI_SERVER:
-    raise ValueError("KOMARI_SERVER and KOMARI_TOKEN must be set in environment variables.")
+# 根据架构选择下载链接
+arch = platform.machine().lower()
+if 'arm' in arch or 'aarch64' in arch:
+    AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.0.72/komari-agent-linux-arm64"
+else:
+    AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.0.72/komari-agent-linux-amd64"
 
-WS_URL = f"{KOMARI_SERVER}/api/clients/report?token={KOMARI_TOKEN}"
+# 下载 Komari Agent
+if not os.path.exists(AGENT_PATH):
+    print(f"Downloading Komari Agent for architecture {arch}...")
+    r = requests.get(AGENT_URL, stream=True)
+    with open(AGENT_PATH, "wb") as f:
+        for chunk in r.iter_content(1024):
+            f.write(chunk)
+    print("Download complete.")
 
-# ------------------------------
-# 收集监控数据函数
-# ------------------------------
-def collect_metrics():
-    cpu_percent = psutil.cpu_percent(interval=None)
-    mem = psutil.virtual_memory()
-    disk = psutil.disk_usage("/")
+# 授权可执行
+os.chmod(AGENT_PATH, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+print("Permission granted, starting Komari Agent in background...")
 
-    metrics = {
-        "cpu": cpu_percent,
-        "memory": round(mem.used / 1024 / 1024, 2),
-        "disk": round(disk.used / 1024 / 1024, 2),
-        "arch": platform.machine()
-    }
-    return metrics
+# 后台运行 Komari Agent，不阻塞后续脚本
+with open(os.devnull, "wb") as devnull:
+    subprocess.Popen(
+        [AGENT_PATH, "-e", KOMARI_SERVER, "-t", KOMARI_TOKEN],
+        stdout=devnull,
+        stderr=devnull,
+        stdin=devnull,
+        close_fds=True
+    )
 
-# ------------------------------
-# WebSocket 上报协程
-# ------------------------------
-async def send_metrics():
-    while True:
-        try:
-            async with websockets.connect(WS_URL) as ws:
-                print("Connected to Komari WebSocket server.")
-                while True:
-                    data = collect_metrics()
-                    await ws.send(json.dumps(data))
-                    print(f"Sent metrics: {data}")
-                    await asyncio.sleep(1)
-        except Exception as e:
-            print(f"WebSocket connection error: {e}, retrying in 5s...")
-            await asyncio.sleep(5)
-
-# ------------------------------
-# 主程序
-# ------------------------------
-if __name__ == "__main__":
-    print("Python Komari Agent started...Main app continues running...")
-    try:
-        asyncio.run(send_metrics())
-    except KeyboardInterrupt:
-        print("Komari Agent stopped manually.")
+print("Komari Agent is running in the background.")
