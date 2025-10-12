@@ -1,8 +1,7 @@
 import os
+import threading
+import time
 import requests
-import stat
-import subprocess
-import platform
 
 # ========================
 # 配置
@@ -10,46 +9,45 @@ import platform
 KOMARI_SERVER = "https://komari.vinceluv.nyc.mn"
 KOMARI_TOKEN = "kIxx77rbotRSbHR9B0abxf"
 
-# 使用当前工作目录，兼容 Choreo Cloud Data Plane
-AGENT_PATH = "komari-agent"
+# ========================
+# 模拟 Komari Agent 功能
+# ========================
+def komari_agent_loop():
+    """
+    模拟 Komari Agent 的后台运行
+    这里可以定时上报数据到 KOMARI_SERVER
+    """
+    print("Python Komari Agent started...")
+    while True:
+        try:
+            # 示例：发送心跳
+            resp = requests.post(
+                f"{KOMARI_SERVER}/heartbeat",
+                json={"token": KOMARI_TOKEN, "status": "alive"}
+            )
+            if resp.status_code == 200:
+                print("Heartbeat sent successfully.")
+            else:
+                print(f"Heartbeat failed: {resp.status_code}")
+        except Exception as e:
+            print(f"Error sending heartbeat: {e}")
+        
+        time.sleep(10)  # 每 10 秒发送一次
 
 # ========================
-# 根据架构选择下载链接
+# 启动后台线程
 # ========================
-arch = platform.machine().lower()
-if 'arm' in arch or 'aarch64' in arch:
-    AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.0.72/komari-agent-linux-arm64"
-else:
-    AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.0.72/komari-agent-linux-amd64"
+agent_thread = threading.Thread(target=komari_agent_loop, daemon=True)
+agent_thread.start()
 
 # ========================
-# 下载 Komari Agent
+# 主线程继续执行其他逻辑
 # ========================
-if not os.path.exists(AGENT_PATH):
-    print(f"Downloading Komari Agent for architecture {arch}...")
-    r = requests.get(AGENT_URL, stream=True)
-    r.raise_for_status()  # 检查下载是否成功
-    with open(AGENT_PATH, "wb") as f:
-        for chunk in r.iter_content(1024):
-            f.write(chunk)
-    print("Download complete.")
+print("Main app continues running...")
 
-# ========================
-# 授权可执行
-# ========================
-os.chmod(AGENT_PATH, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
-print("Permission granted, starting Komari Agent in background...")
-
-# ========================
-# 后台运行 Komari Agent，不阻塞后续脚本
-# ========================
-with open(os.devnull, "wb") as devnull:
-    subprocess.Popen(
-        [AGENT_PATH, "-e", KOMARI_SERVER, "-t", KOMARI_TOKEN],
-        stdout=devnull,
-        stderr=devnull,
-        stdin=devnull,
-        close_fds=True
-    )
-
-print("Komari Agent is running in the background.")
+# 示例：保持主线程不退出
+try:
+    while True:
+        time.sleep(60)
+except KeyboardInterrupt:
+    print("Exiting app.")
