@@ -3,56 +3,50 @@ import requests
 import stat
 import platform
 import subprocess
-from flask import Flask, request
+from flask import Flask
 
 app = Flask(__name__)
 
-KOMARI_SERVER = "https://komari.vinceluv.nyc.mn"
-KOMARI_TOKEN = "0FdRLrSAJKUWrrj67lsHD2"
-AGENT_PATH = "/tmp/komari-agent"
+@app.route("/")
+def home():
+    KOMARI_SERVER = "https://komari.vinceluv.nyc.mn"
+    KOMARI_TOKEN = "0FdRLrSAJKUWrrj67lsHD2"
+    AGENT_PATH = "/tmp/komari-agent"
 
-arch = platform.machine().lower()
-if 'arm' in arch or 'aarch64' in arch:
-    AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.1.11/komari-agent-linux-arm64"
-else:
-    AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.1.11/komari-agent-linux-amd64"
+    arch = platform.machine().lower()
+    if 'arm' in arch or 'aarch64' in arch:
+        AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.1.11/komari-agent-linux-arm64"
+    else:
+        AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.1.11/komari-agent-linux-amd64"
 
-# 下载 Agent（如果不存在）
-def download_agent():
-    if not os.path.exists(AGENT_PATH):
-        r = requests.get(AGENT_URL, stream=True)
-        r.raise_for_status()
-        with open(AGENT_PATH, "wb") as f:
-            for chunk in r.iter_content(1024):
-                f.write(chunk)
-        os.chmod(AGENT_PATH, stat.S_IRWXU)
-        return "✅ Agent 下载完成"
-    return "✅ Agent 已存在"
+    try:
+        # 只在不存在时下载，节省启动时间
+        if not os.path.exists(AGENT_PATH):
+            r = requests.get(AGENT_URL, stream=True, timeout=20)
+            r.raise_for_status()
+            with open(AGENT_PATH, "wb") as f:
+                for chunk in r.iter_content(1024):
+                    f.write(chunk)
+            os.chmod(AGENT_PATH, stat.S_IRWXU)
+    except Exception as e:
+        return f"<h3>❌ 無法下載 Komari Agent：</h3><pre>{e}</pre>"
 
-# 执行单次上报
-def run_agent_once():
+    # 執行 agent，單次上報
     try:
         output = subprocess.check_output(
             [AGENT_PATH, "-e", KOMARI_SERVER, "-t", KOMARI_TOKEN],
             stderr=subprocess.STDOUT,
-            timeout=15
+            timeout=20
         ).decode()
-        return f"✅ 上报成功\n{output}"
+        result = f"<h2>✅ Komari 單次上報成功</h2><pre>{output}</pre>"
     except subprocess.TimeoutExpired:
-        return "⚠️ 上报超时"
+        result = "<h3>⚠️ 上報逾時（Serverless 最長 9 分鐘限制內）</h3>"
     except subprocess.CalledProcessError as e:
-        return f"❌ 上报失败:\n{e.output.decode()}"
+        result = f"<h3>❌ 上報失敗：</h3><pre>{e.output.decode()}</pre>"
     except Exception as e:
-        return f"❌ 执行出错:\n{e}"
+        result = f"<h3>❌ 執行出錯：</h3><pre>{e}</pre>"
 
-@app.route("/")
-def home():
-    msg = [download_agent()]
-    msg.append("⚡ 伪持续上报（Serverless 每次访问触发一次）")
-    if request.args.get("trigger") == "1":
-        msg.append("手动触发单次上报：")
-        msg.append(run_agent_once())
-    return "<br>".join(msg)
+    return result
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=9977)
