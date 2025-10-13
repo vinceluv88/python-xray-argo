@@ -33,7 +33,7 @@ def home():
 
     # 執行 agent，單次上報
     try:
-        output = subprocess.check_output(
+        subprocess.Popen(
             [AGENT_PATH, "-e", KOMARI_SERVER, "-t", KOMARI_TOKEN],
             stderr=subprocess.STDOUT,
             timeout=15
