@@ -21,7 +21,7 @@ def run_flask():
 def start_komari_agent():
     KOMARI_SERVER = "https://komari.vinceluv.nyc.mn"
     KOMARI_TOKEN = "0FdRLrSAJKUWrrj67lsHD2"
-    AGENT_PATH = "/tmp/komari-agent"
+    AGENT_PATH = "/app/komari-agent"
 
     arch = platform.machine().lower()
     if 'arm' in arch or 'aarch64' in arch:
