@@ -1,32 +1,36 @@
-name: auto update streamit
+name: Auto Update & Deploy Streamlit
 
 on:
-  workflow_dispatch:
-  schedule:
+  workflow_dispatch: # 手动触发
+  schedule:          # 定时触发，每12小时
     - cron: '0 */12 * * *'
-  repository_dispatch:
+  repository_dispatch: # Uptime Kuma 下线触发
     types: [service-down-alert]
 
 jobs:
-  update-version:
+  update-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ 检查触发事件类型
       - name: Check Trigger Event
         run: |
           echo "Workflow triggered by: ${{ github.event_name }}"
+          
           if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
             echo "触发事件类型 (Event Type): ${{ github.event.event_type }}"
-            echo "收到来自 Uptime Kuma 的下线通知，开始执行自动恢复部署流程..."
+            echo "收到来自 Uptime Kuma 的下线通知，开始执行自动部署..."
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "工作流被手动触发，开始执行部署..."
           else
             echo "工作流由计划任务触发，开始执行部署..."
           fi
-        
+
+      # 2️⃣ Checkout main branch
       - name: Checkout main branch
         uses: actions/checkout@v4
 
+      # 3️⃣ 更新 version.txt
       - name: Get current Beijing time and prepare commit message
         id: time
         run: |
@@ -34,6 +38,7 @@ jobs:
           echo "$TIMESTAMP" > version.txt
           echo "commit_message=更新时间戳 - $TIMESTAMP" >> $GITHUB_OUTPUT
 
+      # 4️⃣ Commit & push version.txt if changed
       - name: Commit and push if changed
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
@@ -43,3 +48,9 @@ jobs:
           commit_user_name: "github-actions[bot]"
           commit_user_email: "github-actions[bot]@users.noreply.github.com"
           commit_author: "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+
+      # 5️⃣ 执行部署脚本
+      - name: Deploy Streamlit
+        run: |
+          chmod +x ./deploy.sh
+          ./deploy.sh
