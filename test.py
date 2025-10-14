@@ -20,7 +20,7 @@ def run_flask():
 # === Komari Agent 啟動部分 ===
 def start_komari_agent():
     KOMARI_SERVER = "https://komari.vinceluv.nyc.mn"
-    KOMARI_TOKEN = "YbPVvvpoRQithbVuGMi7Rr"
+    KOMARI_TOKEN = "rjhF4asVr2ODACpFCdWzGt"
     AGENT_PATH = "/tmp/komari-agent"
 
     arch = platform.machine().lower()
