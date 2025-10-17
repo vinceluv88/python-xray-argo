@@ -1,68 +1,51 @@
-# main.py
+# appwrite_komari.py
 import os
+import time
 import requests
 import stat
 import platform
 import subprocess
-import time
 
-# 全局变量保存最新上报状态
-status_message = "⏳ Komari Agent 初始化中..."
+# ========================
+# 配置
+# ========================
+KOMARI_SERVER = "https://komari.vinceluv.nyc.mn"
+KOMARI_TOKEN = "aYKWDxXsqjGjzbowTGq7Jm"
+AGENT_PATH = "/tmp/komari-agent"
 
-def run_agent():
-    global status_message
+arch = platform.machine().lower()
+if "arm" in arch or "aarch64" in arch:
+    AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.1.12/komari-agent-linux-arm64"
+else:
+    AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.1.12/komari-agent-linux-amd64"
 
-    KOMARI_SERVER = "https://komari.vinceluv.nyc.mn"
-    KOMARI_TOKEN = "aYKWDxXsqjGjzbowTGq7Jm"
-    AGENT_PATH = "/tmp/komari-agent"
+# ========================
+# 下载 Komari Agent（如不存在）
+# ========================
+if not os.path.exists(AGENT_PATH):
+    print(f"Downloading Komari Agent for {arch}...")
+    r = requests.get(AGENT_URL, stream=True)
+    r.raise_for_status()
+    with open(AGENT_PATH, "wb") as f:
+        for chunk in r.iter_content(1024):
+            f.write(chunk)
+    os.chmod(AGENT_PATH, stat.S_IRWXU)
+    print("Download complete.")
 
-    arch = platform.machine().lower()
-    if "arm" in arch or "aarch64" in arch:
-        AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.1.12/komari-agent-linux-arm64"
-    else:
-        AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.1.12/komari-agent-linux-amd64"
+print("✅ Komari Agent 持續上報中（後台執行）")
 
+# ========================
+# 无限循环持续上报
+# ========================
+while True:
     try:
-        # 下载 agent（如未存在）
-        if not os.path.exists(AGENT_PATH):
-            r = requests.get(AGENT_URL, stream=True, timeout=30)
-            r.raise_for_status()
-            with open(AGENT_PATH, "wb") as f:
-                for chunk in r.iter_content(1024):
-                    f.write(chunk)
-            os.chmod(AGENT_PATH, stat.S_IRWXU)
-
-        # 执行一次上报
         subprocess.run(
             [AGENT_PATH, "-e", KOMARI_SERVER, "-t", KOMARI_TOKEN],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            check=True,
+            check=True
         )
-
-        status_message = "✅ Komari Agent 上報成功（持續執行中）"
-    except subprocess.CalledProcessError:
-        status_message = "❌ 上報失敗：Agent 返回錯誤"
+        time.sleep(5)  # 每 5 秒上报一次
     except Exception as e:
-        status_message = f"❌ 上報出錯：{e}"
-
-def main(context):
-    global status_message
-
-    # 如果访问路径是 /status，就显示网页
-    if context.req.path == "/" or context.req.path == "/status":
-        return context.res.html(f"""
-            <html><body style='font-family:sans-serif;text-align:center;margin-top:50px'>
-                <h2>{status_message}</h2>
-                <p>Appwrite Function 正在運行持續上報任務</p>
-            </body></html>
-        """)
-
-    # 启动持续上报循环
-    if context.req.path == "/run":
-        status_message = "⏳ Komari Agent 啟動中..."
-        run_agent()
-        return context.res.text(status_message)
-
-    # 默认返回
-    return context.res.text("Appwrite Komari Function Ready ✅")
+        print(f"❌ 上報出錯: {e}")
+        time.sleep(1)  # 出错时短暂等待 1 秒再重试
