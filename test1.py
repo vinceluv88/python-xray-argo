@@ -11,14 +11,14 @@ app = Flask(__name__)
 @app.route("/")
 def home():
     KOMARI_SERVER = "https://komari.vinceluv.nyc.mn"
-    KOMARI_TOKEN = "0FdRLrSAJKUWrrj67lsHD2"
+    KOMARI_TOKEN = "aYKWDxXsqjGjzbowTGq7Jm"
     AGENT_PATH = "/tmp/komari-agent"
 
     arch = platform.machine().lower()
     if 'arm' in arch or 'aarch64' in arch:
-        AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.1.11/komari-agent-linux-arm64"
+        AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.1.12/komari-agent-linux-arm64"
     else:
-        AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.1.11/komari-agent-linux-amd64"
+        AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.1.12/komari-agent-linux-amd64"
 
     try:
         # 只在不存在时下载，节省启动时间
