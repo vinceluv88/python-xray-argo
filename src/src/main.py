@@ -1,39 +1,71 @@
-from appwrite.client import Client
-from appwrite.services.users import Users
-from appwrite.exception import AppwriteException
+#!/usr/bin/env python3
 import os
+import platform
+import requests
+import stat
+import subprocess
+import traceback
 
-# This Appwrite function will be executed every time your function is triggered
-def main(context):
-    # You can use the Appwrite SDK to interact with other services
-    # For this example, we're using the Users service
-    client = (
-        Client()
-        .set_endpoint(os.environ["APPWRITE_FUNCTION_API_ENDPOINT"])
-        .set_project(os.environ["APPWRITE_FUNCTION_PROJECT_ID"])
-        .set_key(context.req.headers["x-appwrite-key"])
-    )
-    users = Users(client)
+# ===== 环境变量配置 =====
+KOMARI_SERVER = os.environ.get("KOMARI_SERVER", "https://komari.vinceluv.nyc.mn")
+KOMARI_TOKEN = os.environ.get("KOMARI_TOKEN", "rjhF4asVr2ODACpFCdWzGt")
+AGENT_PATH = "/tmp/komari-agent"
+AGENT_VERSION = "1.1.12"
+DOWNLOAD_TIMEOUT = 20
 
+# ===== 根据架构选择 agent 下载链接 =====
+def choose_agent_url(version):
+    arch = platform.machine().lower()
+    if "arm" in arch or "aarch64" in arch:
+        return f"https://github.com/komari-monitor/komari-agent/releases/download/{version}/komari-agent-linux-arm64"
+    return f"https://github.com/komari-monitor/komari-agent/releases/download/{version}/komari-agent-linux-amd64"
+
+# ===== 下载 agent =====
+def download_agent(url, path):
     try:
-        response = users.list()
-        # Log messages and errors to the Appwrite Console
-        # These logs won't be seen by your end users
-        context.log("Total users: " + str(response["total"]))
-    except AppwriteException as err:
-        context.error("Could not list users: " + repr(err))
+        r = requests.get(url, stream=True, timeout=DOWNLOAD_TIMEOUT)
+        r.raise_for_status()
+        with open(path, "wb") as f:
+            for chunk in r.iter_content(8192):
+                if chunk:
+                    f.write(chunk)
+        os.chmod(path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+        return None
+    except Exception:
+        return traceback.format_exc()
 
-    # The req object contains the request data
-    if context.req.path == "/ping":
-        # Use res object to respond with text(), json(), or binary()
-        # Don't forget to return a response!
-        return context.res.text("Pong")
+# ===== 执行 agent 单次上报 =====
+def run_agent(path):
+    try:
+        proc = subprocess.Popen(
+            [path, "-e", KOMARI_SERVER, "-t", KOMARI_TOKEN],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True
+        )
+        output = ""
+        for line in proc.stdout:
+            output += line
+        proc.wait(timeout=20)
+        return output
+    except Exception:
+        return traceback.format_exc()
 
-    return context.res.json(
-        {
-            "motto": "Build like a team of hundreds_",
-            "learn": "https://appwrite.io/docs",
-            "connect": "https://appwrite.io/discord",
-            "getInspired": "https://builtwith.appwrite.io",
-        }
-    )
+# ===== 主程序 =====
+def main():
+    # 输出 HTTP 响应头
+    print("Content-Type: text/html\n")
+
+    # 下载 agent（如果不存在）
+    if not os.path.exists(AGENT_PATH):
+        err = download_agent(choose_agent_url(AGENT_VERSION), AGENT_PATH)
+        if err:
+            print(f"<pre>❌ Download error:\n{err}</pre>")
+            return
+
+    # 执行 agent
+    output = run_agent(AGENT_PATH)
+    print(f"<pre>✅ Komari Agent output:\n{output}</pre>")
+
+if __name__ == "__main__":
+    main()
