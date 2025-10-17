@@ -33,7 +33,7 @@ while True:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-        time.sleep(30)  # 每 30 秒上报一次
+        time.sleep(5)  # 每 30 秒上报一次
     except Exception as e:
         print(f"❌ 上報出錯: {e}")
         time.sleep(60)
