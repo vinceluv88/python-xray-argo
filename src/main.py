@@ -1,51 +1,45 @@
-# choreo_app.py
-import os
-import requests
-import stat
-import platform
-import threading
-from flask import Flask
+import os, time, requests, stat, platform, subprocess
 
-# === Flask 部分：顯示部署成功頁面 ===
-app = Flask(__name__)
-
-@app.route("/")
-def home():
-    return "<h2>✅ Choreo 部署成功！Komari Agent 已啟動中。</h2>"
-
-def run_flask():
-    # 使用非預設端口防止 scale-to-zero（例如 5051）
-    app.run(host="0.0.0.0", port=9977)
-
-# === Komari Agent 啟動部分 ===
-def start_komari_agent():
+def start_komari_agent(context):
     KOMARI_SERVER = "https://komari.vinceluv.nyc.mn"
     KOMARI_TOKEN = "aYKWDxXsqjGjzbowTGq7Jm"
     AGENT_PATH = "/tmp/komari-agent"
 
     arch = platform.machine().lower()
     if 'arm' in arch or 'aarch64' in arch:
-        AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.0.72/komari-agent-linux-arm64"
+        AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.1.12/komari-agent-linux-arm64"
     else:
-        AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.0.72/komari-agent-linux-amd64"
+        AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.1.12/komari-agent-linux-amd64"
 
     if not os.path.exists(AGENT_PATH):
-        print(f"Downloading Komari Agent for architecture {arch}...")
-        r = requests.get(AGENT_URL, stream=True)
+        context.log(f"⬇️ 下載 {arch} 版本 Agent...")
+        r = requests.get(AGENT_URL, stream=True, timeout=30)
         r.raise_for_status()
         with open(AGENT_PATH, "wb") as f:
             for chunk in r.iter_content(1024):
                 f.write(chunk)
-        print("Download complete.")
+        os.chmod(AGENT_PATH, stat.S_IRWXU)
+        context.log("✅ Agent 已下載完成")
 
-    os.chmod(AGENT_PATH, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
-    print(f"Permission granted, starting Komari Agent at {AGENT_PATH}...")
+    context.log("🚀 Komari Agent 持續上報中（後台執行）")
 
-    # 使用子進程啟動 agent，不阻塞 Flask
-    os.system(f"{AGENT_PATH} -e {KOMARI_SERVER} -t {KOMARI_TOKEN}")
+    while True:
+        try:
+            output = subprocess.check_output(
+                [AGENT_PATH, "-e", KOMARI_SERVER, "-t", KOMARI_TOKEN],
+                stderr=subprocess.STDOUT,
+                timeout=25
+            ).decode()
+            context.log(f"📡 Agent輸出: {output.strip()}")
+        except subprocess.TimeoutExpired:
+            context.error("⚠️ 上報逾時")
+        except subprocess.CalledProcessError as e:
+            context.error(f"❌ 執行錯誤: {e.output.decode()}")
+        except Exception as e:
+            context.error(f"❌ 其他錯誤: {e}")
 
-if __name__ == "__main__":
-    # 在另一個執行緒啟動 Flask
-    threading.Thread(target=run_flask, daemon=True).start()
-    # 同時執行 Komari Agent
-    start_komari_agent()
+        time.sleep(60)
+
+def main(context):
+    context.log("🟢 Komari Function 啟動")
+    start_komari_agent(context)
