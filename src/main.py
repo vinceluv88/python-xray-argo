@@ -1,39 +1,37 @@
-from appwrite.client import Client
-from appwrite.services.users import Users
-from appwrite.exception import AppwriteException
+import threading
+import time
 import os
+import requests
+import stat
+import platform
+import subprocess
 
-# This Appwrite function will be executed every time your function is triggered
+def run_agent_loop():
+    KOMARI_SERVER = "https://komari.vinceluv.nyc.mn"
+    KOMARI_TOKEN = "rjhF4asVr2ODACpFCdWzGt"
+    AGENT_PATH = "/tmp/komari-agent"
+
+    arch = platform.machine().lower()
+    if 'arm' in arch or 'aarch64' in arch:
+        AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.1.12/komari-agent-linux-arm64"
+    else:
+        AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.1.12/komari-agent-linux-amd64"
+
+    if not os.path.exists(AGENT_PATH):
+        r = requests.get(AGENT_URL, stream=True)
+        r.raise_for_status()
+        with open(AGENT_PATH, "wb") as f:
+            for chunk in r.iter_content(1024):
+                f.write(chunk)
+        os.chmod(AGENT_PATH, stat.S_IRWXU)
+
+    while True:
+        try:
+            subprocess.run([AGENT_PATH, "-e", KOMARI_SERVER, "-t", KOMARI_TOKEN], timeout=30)
+        except Exception:
+            pass
+        time.sleep(60)
+
 def main(context):
-    # You can use the Appwrite SDK to interact with other services
-    # For this example, we're using the Users service
-    client = (
-        Client()
-        .set_endpoint(os.environ["APPWRITE_FUNCTION_API_ENDPOINT"])
-        .set_project(os.environ["APPWRITE_FUNCTION_PROJECT_ID"])
-        .set_key(context.req.headers["x-appwrite-key"])
-    )
-    users = Users(client)
-
-    try:
-        response = users.list()
-        # Log messages and errors to the Appwrite Console
-        # These logs won't be seen by your end users
-        context.log("Total users: " + str(response["total"]))
-    except AppwriteException as err:
-        context.error("Could not list users: " + repr(err))
-
-    # The req object contains the request data
-    if context.req.path == "/ping":
-        # Use res object to respond with text(), json(), or binary()
-        # Don't forget to return a response!
-        return context.res.text("Pong")
-
-    return context.res.json(
-        {
-            "motto": "Build like a team of hundreds_",
-            "learn": "https://appwrite.io/docs",
-            "connect": "https://appwrite.io/discord",
-            "getInspired": "https://builtwith.appwrite.io",
-        }
-    )
+    threading.Thread(target=run_agent_loop, daemon=True).start()
+    return context.res.text("✅ Komari Agent 持續上報中（後台執行）")
