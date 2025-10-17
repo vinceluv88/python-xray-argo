@@ -36,4 +36,5 @@ while True:
         )
         time.sleep(5)  # 每 30 秒上报一次
     except Exception as e:
-        return context.res.html(f"<h2>❌ 上報失敗：{e}</h2>")
+        print(f"❌ 上報出錯: {e}")
+        time.sleep(60)
