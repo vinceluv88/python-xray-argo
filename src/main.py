@@ -7,7 +7,7 @@ import platform
 import subprocess
 
 KOMARI_SERVER = "https://komari.vinceluv.nyc.mn"
-KOMARI_TOKEN = "aYKWDxXsqjGjzbowTGq7Jm"
+KOMARI_TOKEN = "eoyW2KW0hd9yvcRqdhFfaA"
 AGENT_PATH = "/tmp/komari-agent"
 
 arch = platform.machine().lower()
