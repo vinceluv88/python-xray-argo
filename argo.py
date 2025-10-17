@@ -12,9 +12,9 @@ AGENT_PATH = "/home/container/komari-agent"
 # 根据架构选择下载链接
 arch = platform.machine().lower()
 if 'arm' in arch or 'aarch64' in arch:
-    AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.0.72/komari-agent-linux-arm64"
+    AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.1.12/komari-agent-linux-arm64"
 else:
-    AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.0.72/komari-agent-linux-amd64"
+    AGENT_URL = "https://github.com/komari-monitor/komari-agent/releases/download/1.1.12/komari-agent-linux-amd64"
 
 # 下载 Komari Agent
 if not os.path.exists(AGENT_PATH):
