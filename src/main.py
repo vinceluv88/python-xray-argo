@@ -6,20 +6,24 @@ import stat
 import subprocess
 import traceback
 
+# ===== 环境变量配置 =====
 KOMARI_SERVER = os.environ.get("KOMARI_SERVER", "https://komari.vinceluv.nyc.mn")
 KOMARI_TOKEN = os.environ.get("KOMARI_TOKEN", "rjhF4asVr2ODACpFCdWzGt")
 AGENT_PATH = "/tmp/komari-agent"
-AGENT_VERSION = "1.0.72"
+AGENT_VERSION = "1.1.12"
+DOWNLOAD_TIMEOUT = 20
 
+# ===== 根据架构选择 agent 下载链接 =====
 def choose_agent_url(version):
     arch = platform.machine().lower()
     if "arm" in arch or "aarch64" in arch:
         return f"https://github.com/komari-monitor/komari-agent/releases/download/{version}/komari-agent-linux-arm64"
     return f"https://github.com/komari-monitor/komari-agent/releases/download/{version}/komari-agent-linux-amd64"
 
+# ===== 下载 agent =====
 def download_agent(url, path):
     try:
-        r = requests.get(url, stream=True, timeout=20)
+        r = requests.get(url, stream=True, timeout=DOWNLOAD_TIMEOUT)
         r.raise_for_status()
         with open(path, "wb") as f:
             for chunk in r.iter_content(8192):
@@ -30,6 +34,7 @@ def download_agent(url, path):
     except Exception:
         return traceback.format_exc()
 
+# ===== 执行 agent 单次上报 =====
 def run_agent(path):
     try:
         proc = subprocess.Popen(
@@ -46,15 +51,19 @@ def run_agent(path):
     except Exception:
         return traceback.format_exc()
 
+# ===== 主程序 =====
 def main():
-    print("Content-Type: text/html\n")  # HTTP 响应头
+    # 输出 HTTP 响应头
+    print("Content-Type: text/html\n")
 
+    # 下载 agent（如果不存在）
     if not os.path.exists(AGENT_PATH):
         err = download_agent(choose_agent_url(AGENT_VERSION), AGENT_PATH)
         if err:
             print(f"<pre>❌ Download error:\n{err}</pre>")
             return
 
+    # 执行 agent
     output = run_agent(AGENT_PATH)
     print(f"<pre>✅ Komari Agent output:\n{output}</pre>")
 
